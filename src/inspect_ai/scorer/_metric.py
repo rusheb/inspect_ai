@@ -531,6 +531,7 @@ async def recompute_metrics(log: "EvalLog") -> None:
     """
     # Import here to avoid circular imports
     from inspect_ai._eval.task.results import eval_results
+    from inspect_ai.scorer._metrics import mean  # Import the mean metric
 
     if log.samples is None:
         logger.warning("No samples in log to recompute metrics for")
@@ -543,18 +544,23 @@ async def recompute_metrics(log: "EvalLog") -> None:
             sample_scores: dict[str, SampleScore] = {}
             for score_name, score in sample.scores.items():
                 sample_scores[score_name] = SampleScore(
-                    score=score,
-                    sample_id=sample.id,
-                    sample_metadata=sample.metadata,
-                    scorer=score_name,
+                    score=score, sample_id=sample.id, sample_metadata=sample.metadata
                 )
             scores.append(sample_scores)
 
     # Get scorers and metrics from the log
     scorers = None  # We'll rely on the scores themselves
-    # TODO: We would need to reconstruct Metric objects from EvalMetricDefinition
-    # For now, we'll pass None which will use default metrics
+
+    # Try to preserve the original metrics
     metrics = None
+    if log.eval.scorers and len(log.eval.scorers) > 0:
+        # Check if any scorer has metrics defined
+        for scorer_spec in log.eval.scorers:
+            if scorer_spec.metrics:
+                # For now, we'll use mean() as a simple default
+                # TODO: Properly reconstruct metrics from scorer specs
+                metrics = [mean()]
+                break
 
     # Get reducers from the log
     reducers = None

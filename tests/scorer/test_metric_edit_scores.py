@@ -39,12 +39,21 @@ async def test_recompute_scores():
             continue
 
         assert sample.scores is not None
-        to_edit = sample.scores["myscorer"]
+        final_score = sample.scores["myscorer"]
         edit = ScoreEdit(
             value=0,
         )
-        await edit_score(log, to_edit, edit, should_recompute_metrics=False)
+        await edit_score(log, final_score, edit, should_recompute_metrics=False)
 
     await recompute_metrics(log)
+
+    for i, sample in enumerate(log.samples):
+
+        assert sample.scores is not None
+        final_score = sample.scores["myscorer"]
+        if i % 2 == 0:
+            assert final_score.value == 1
+        else:
+            assert final_score.value == 0
 
     assert log.results.scores[0].metrics["mean"].value == 0.5
