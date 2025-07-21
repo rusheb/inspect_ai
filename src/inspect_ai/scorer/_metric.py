@@ -530,8 +530,8 @@ async def recompute_metrics(log: "EvalLog") -> None:
         log: Evaluation log to recompute metrics for.
     """
     # Import here to avoid circular imports
+    from inspect_ai._eval.score import metrics_from_log, reducers_from_log
     from inspect_ai._eval.task.results import eval_results
-    from inspect_ai.scorer._metrics import mean  # Import the mean metric
 
     if log.samples is None:
         logger.warning("No samples in log to recompute metrics for")
@@ -548,36 +548,17 @@ async def recompute_metrics(log: "EvalLog") -> None:
                 )
             scores.append(sample_scores)
 
-    # Get scorers and metrics from the log
-    scorers = None  # We'll rely on the scores themselves
-
-    # Try to preserve the original metrics
-    metrics = None
-    if log.eval.scorers and len(log.eval.scorers) > 0:
-        # Check if any scorer has metrics defined
-        for scorer_spec in log.eval.scorers:
-            if scorer_spec.metrics:
-                # For now, we'll use mean() as a simple default
-                # TODO: Properly reconstruct metrics from scorer specs
-                metrics = [mean()]
-                break
-
-    # Get reducers from the log
-    reducers = None
-    if log.results and log.results.scores and len(log.results.scores) > 0:
-        first_score = log.results.scores[0]
-        if first_score.reducer:
-            # TODO: We need to reconstruct the actual reducer objects from their names
-            # For now, we'll use None which defaults to mean_score
-            reducers = None
+    # Get metrics and reducers from the log
+    log_metrics = metrics_from_log(log)
+    epochs_reducer = reducers_from_log(log)
 
     # Recompute the metrics
     new_results, new_reductions = eval_results(
         samples=len(log.samples),
         scores=scores,
-        reducers=reducers,
-        scorers=scorers,
-        metrics=metrics,
+        reducers=epochs_reducer,
+        scorers=None,  # We'll rely on the scores themselves
+        metrics=log_metrics,
     )
 
     # Update the log with the new results
