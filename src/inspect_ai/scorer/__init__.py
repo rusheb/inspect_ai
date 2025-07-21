@@ -9,13 +9,20 @@ from ._metric import (
     INCORRECT,
     NOANSWER,
     PARTIAL,
+    UNCHANGED,
     Metric,
     MetricProtocol,
+    ProvenanceData,
     SampleScore,
     Score,
+    ScoreData,
+    ScoreEdit,
+    UnchangedType,
     Value,
     ValueToFloat,
+    edit_score,
     metric,
+    recompute_metrics,
     value_to_float,
 )
 from ._metrics.accuracy import accuracy
@@ -84,6 +91,14 @@ __all__ = [
     "max_score",
     "at_least",
     "pass_at",
+    # New score editing APIs
+    "ScoreData",
+    "ScoreEdit",
+    "ProvenanceData",
+    "UNCHANGED",
+    "UnchangedType",
+    "edit_score",
+    "recompute_metrics",
 ]
 _BOOTSTRAP_RENAME_VERSION = "0.3.58"
 _REMOVED_IN = "0.4"
