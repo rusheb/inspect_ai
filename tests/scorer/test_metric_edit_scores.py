@@ -1,6 +1,9 @@
-from inspect_ai import Task, eval, task
+import pytest
+
+from inspect_ai import Task, eval_async, task
 from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.scorer import Score, Target, mean, scorer
+from inspect_ai.scorer._metric import ScoreEdit, edit_score, recompute_metrics
 from inspect_ai.solver import TaskState
 
 
@@ -21,7 +24,27 @@ def mytask():
     )
 
 
-def test_recompute_scores():
-    log = eval(mytask())[0]
+@pytest.mark.asyncio
+async def test_recompute_scores():
+    logs = await eval_async(mytask())
+    log = logs[0]
     print(log.location)
-    pass
+
+    assert log.results is not None and log.results.scores is not None
+    assert log.results.scores[0].metrics["mean"].value == 1
+
+    assert log.samples is not None
+    for i, sample in enumerate(log.samples):
+        if i % 2 == 0:
+            continue
+
+        assert sample.scores is not None
+        to_edit = sample.scores["myscorer"]
+        edit = ScoreEdit(
+            value=0,
+        )
+        await edit_score(log, to_edit, edit, should_recompute_metrics=False)
+
+    await recompute_metrics(log)
+
+    assert log.results.scores[0].metrics["mean"].value == 0.5
