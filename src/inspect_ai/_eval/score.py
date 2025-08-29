@@ -311,7 +311,7 @@ async def run_score_task(
 
 
 def metrics_from_log(log: EvalLog) -> list[Metric] | dict[str, list[Metric]] | None:
-    # See if we have metrics in the eval itself
+    # First, check if we have metrics in the eval itself
     if log.eval.metrics:
         if isinstance(log.eval.metrics, list):
             return [metric_from_log(metric) for metric in log.eval.metrics]
@@ -320,6 +320,30 @@ def metrics_from_log(log: EvalLog) -> list[Metric] | dict[str, list[Metric]] | N
                 key: [metric_from_log(metric) for metric in metrics]
                 for key, metrics in log.eval.metrics.items()
             }
+
+    # If no top-level metrics, check if we have metrics in the scorers
+
+    # TODO: I don't think we should be returning early here. We might need to get all of the metrics?
+    # Need to think about this a bit more.
+    if log.eval.scorers:
+        for scorer in log.eval.scorers:
+            if scorer.metrics:
+                # Found metrics in a scorer
+                if isinstance(scorer.metrics, list):
+                    # Handle list[EvalMetricDefinition | dict[str, list[EvalMetricDefinition]]]
+                    result_metrics = []
+                    for metric_item in scorer.metrics:
+                        if isinstance(metric_item, EvalMetricDefinition):
+                            result_metrics.append(metric_from_log(metric_item))
+                        # Skip dict entries for now - they're more complex
+                    return result_metrics if result_metrics else None
+                elif isinstance(scorer.metrics, dict):
+                    # Handle dict[str, list[EvalMetricDefinition]]
+                    return {
+                        key: [metric_from_log(metric) for metric in metrics]
+                        for key, metrics in scorer.metrics.items()
+                    }
+
     return None
 
 
